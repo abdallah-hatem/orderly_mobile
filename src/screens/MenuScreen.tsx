@@ -63,6 +63,7 @@ export default function MenuScreen({ route, navigation }: any) {
       navigation.navigate('OrderSummary', { orderId });
     } catch (error) {
       console.error(error);
+      navigation.navigate('GroupsList');
     } finally {
       setSubmitting(false);
     }
@@ -107,7 +108,7 @@ export default function MenuScreen({ route, navigation }: any) {
           >
             <View className="flex-row items-center">
                 <ShoppingCart size={20} color="white" className="mr-2" />
-                <Text className="text-white font-bold">{cart.length} items selected</Text>
+                <Text className="text-white font-bold ml-2">{cart.length} items selected</Text>
             </View>
             <Text className="text-white font-bold text-lg">
                 View Summary

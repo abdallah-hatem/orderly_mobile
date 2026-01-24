@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { Camera, Receipt as ReceiptIcon, Check, DollarSign, Edit2, Save } from 'lucide-react-native';
+import { Camera, Receipt as ReceiptIcon, Check, DollarSign, Edit2, Save, ArrowRight } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../api/client';
 import { Receipt, SplitResult } from '../types';
@@ -110,6 +110,20 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
   };
 
   const handleCalculateSettlement = async () => {
+    if (!receipt) return;
+    
+    const totalPaid = receipt.totalAmount;
+    const totalEntered = Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    const difference = Math.abs(totalPaid - totalEntered);
+
+    if (difference > 0.01) {
+        Alert.alert(
+            'Unbalanced Bill',
+            `The sum of member payments (${totalEntered.toFixed(2)} EGP) must match the total paid (${totalPaid.toFixed(2)} EGP). Difference: ${difference.toFixed(2)} EGP.`
+        );
+        return;
+    }
+
     setLoading(true);
     try {
         const paymentList = Object.keys(payments).map(userId => ({
@@ -244,7 +258,7 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                               keyboardType="numeric"
                           />
                       ) : (
-                          <Text className="font-medium">${receipt.subtotal.toFixed(2)}</Text>
+                          <Text className="font-medium">{receipt.subtotal.toFixed(2)} EGP</Text>
                       )}
                   </View>
 
@@ -283,12 +297,12 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                           <View className="flex-row justify-between pt-3 border-t border-gray-100 mt-2">
                               <Text className="font-bold text-xl">New Total</Text>
                               <Text className="font-bold text-xl">
-                                  ${(
+                                  {(
                                       (parseFloat(fees.subtotal) || 0) + 
                                       (parseFloat(fees.tax) || 0) + 
                                       (parseFloat(fees.serviceFee) || 0) + 
                                       (parseFloat(fees.deliveryFee) || 0)
-                                  ).toFixed(2)}
+                                  ).toFixed(2)} EGP
                               </Text>
                           </View>
                       </>
@@ -296,19 +310,19 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                       <>
                           <View className="flex-row justify-between mb-2">
                               <Text className="text-gray-600">Tax</Text>
-                              <Text className="font-medium">${receipt.tax.toFixed(2)}</Text>
+                              <Text className="font-medium">{receipt.tax.toFixed(2)} EGP</Text>
                           </View>
                           <View className="flex-row justify-between mb-2">
                               <Text className="text-gray-600">Service Fee</Text>
-                              <Text className="font-medium">${receipt.serviceFee.toFixed(2)}</Text>
+                              <Text className="font-medium">{receipt.serviceFee.toFixed(2)} EGP</Text>
                           </View>
                           <View className="flex-row justify-between mb-2">
                               <Text className="text-gray-600">Delivery Fee</Text>
-                              <Text className="font-medium">${receipt.deliveryFee.toFixed(2)}</Text>
+                              <Text className="font-medium">{receipt.deliveryFee.toFixed(2)} EGP</Text>
                           </View>
                           <View className="flex-row justify-between pt-3 border-t border-gray-100 mt-2">
                               <Text className="font-bold text-xl">Total Paid</Text>
-                              <Text className="font-bold text-xl">${receipt.totalAmount.toFixed(2)}</Text>
+                              <Text className="font-bold text-xl">{receipt.totalAmount.toFixed(2)} EGP</Text>
                           </View>
                       </>
                   )}
@@ -324,7 +338,7 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                   <View key={idx} className="bg-white rounded-2xl p-4 mb-3 shadow-sm border-l-4 border-black">
                       <View className="flex-row justify-between items-start">
                           <Text className="font-bold text-lg">{s.userName}</Text>
-                          <Text className="text-xl font-bold text-black">${getLiveUserTotal(s).toFixed(2)}</Text>
+                          <Text className="text-xl font-bold text-black">{getLiveUserTotal(s).toFixed(2)} EGP</Text>
                       </View>
                       
                       <View className="mt-2 pt-2 border-t border-gray-50">
@@ -336,7 +350,7 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                                   <Text className="text-sm text-gray-600 flex-1">{item.quantity}x {item.name}</Text>
                                   {editing ? (
                                       <View className="flex-row items-center">
-                                          <Text className="text-gray-400 text-xs mr-1">$</Text>
+                                          <Text className="text-gray-400 text-xs mr-1">EGP</Text>
                                           <TextInput 
                                                className="border border-gray-200 rounded px-2 h-8 w-24 text-sm bg-white text-black font-medium pb-[4px]"
                                                style={{ paddingVertical: 0, textAlignVertical: 'center', includeFontPadding: false }}
@@ -346,12 +360,12 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                                            />
                                       </View>
                                   ) : (
-                                      <Text className="text-sm font-medium">${item.currentPrice.toFixed(2)}</Text>
+                                      <Text className="text-sm font-medium">{item.currentPrice.toFixed(2)} EGP</Text>
                                   )}
                               </View>
                           ))}
                           {!editing && (
-                               <Text className="text-gray-400 text-[10px] mt-1 italic">+ ${s.sharedCostPortion.toFixed(2)} tax & fees</Text>
+                               <Text className="text-gray-400 text-[10px] mt-1 italic">+ {s.sharedCostPortion.toFixed(2)} EGP active tax & fees</Text>
                           )}
                       </View>
                   </View>
@@ -362,7 +376,7 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                   <View key={idx} className="bg-white rounded-2xl p-4 mb-2 shadow-sm flex-row items-center justify-between">
                       <Text className="font-bold text-lg">{s.userName}</Text>
                       <View className="flex-row items-center">
-                          <Text className="mr-2 text-gray-500">$</Text>
+                          <Text className="mr-2 text-gray-500">EGP</Text>
                           <TextInput 
                               className="border border-gray-300 rounded px-2 py-2 w-24 text-right bg-gray-50"
                               value={payments[s.userId] || ''}
@@ -373,6 +387,29 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                       </View>
                   </View>
               ))}
+
+              <View className={`mt-4 p-4 rounded-xl flex-row justify-between items-center ${
+                  Math.abs(receipt.totalAmount - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
+                  ? 'bg-green-50 border border-green-200'
+                  : 'bg-red-50 border border-red-200'
+              }`}>
+                  <View>
+                      <Text className="text-xs font-bold text-gray-400 uppercase">Balance Status</Text>
+                      <Text className={`font-bold ${
+                          Math.abs(receipt.totalAmount - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
+                          ? 'text-green-700'
+                          : 'text-red-700'
+                      }`}>
+                          {Math.abs(receipt.totalAmount - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
+                          ? 'Matched perfectly!'
+                          : `Mismatch: ${(receipt.totalAmount - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)).toFixed(2)} EGP`}
+                      </Text>
+                  </View>
+                  <View className="items-end">
+                      <Text className="text-xs font-bold text-gray-400 uppercase">Target Total</Text>
+                      <Text className="font-bold text-black">{receipt.totalAmount.toFixed(2)} EGP</Text>
+                  </View>
+              </View>
 
               <TouchableOpacity 
                 className="bg-green-600 p-4 rounded-xl items-center mt-4 mb-6"
@@ -391,21 +428,27 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                               <View key={idx} className="flex-row items-center justify-between mb-4 border-b border-gray-800 pb-2">
                                   <View className="flex-row items-center">
                                       <Text className="text-red-400 font-bold text-lg">{s.from}</Text>
-                                      <Text className="text-gray-400 mx-2">pays</Text>
+                                      <ArrowRight size={18} color="#6B7280" style={{ marginHorizontal: 8 }}/>
                                       <Text className="text-green-400 font-bold text-lg">{s.to}</Text>
                                   </View>
-                                  <Text className="text-white font-bold text-xl">${s.amount.toFixed(2)}</Text>
+                                  <Text className="text-white font-bold text-xl">{s.amount.toFixed(2)} EGP</Text>
                               </View>
                           ))
                       )}
                   </View>
               )}
 
-              <TouchableOpacity 
-                className="bg-gray-200 p-4 rounded-xl items-center mt-2 mb-10"
-                onPress={() => navigation.popToTop()}
+               <TouchableOpacity 
+                className={`p-4 rounded-xl items-center mt-2 mb-10 ${!settlement ? 'bg-gray-100' : 'bg-black shadow-lg'}`}
+                onPress={() => {
+                    if (!settlement) {
+                        Alert.alert('First things first', 'Please calculate the settlement plan before finishing.');
+                        return;
+                    }
+                    navigation.navigate('History');
+                }}
               >
-                <Text className="text-gray-900 font-bold text-lg">Finish & Go Home</Text>
+                <Text className={`font-bold text-lg ${!settlement ? 'text-gray-400' : 'text-white'}`}>Finish & Go Home</Text>
               </TouchableOpacity>
             </>
           )}

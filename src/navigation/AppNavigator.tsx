@@ -18,7 +18,6 @@ import OrderSummaryScreen from '../screens/OrderSummaryScreen';
 import ReceiptReviewScreen from '../screens/ReceiptReviewScreen';
 import InviteMemberScreen from '../screens/InviteMemberScreen';
 import HistoryScreen from '../screens/HistoryScreen';
-import PastOrderScreen from '../screens/PastOrderScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import InvitationsScreen from '../screens/InvitationsScreen';
 
@@ -71,7 +70,6 @@ function HistoryStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: true }}>
       <Stack.Screen name="HistoryList" component={HistoryScreen} options={{ title: 'Order History' }} />
-      <Stack.Screen name="PastOrder" component={PastOrderScreen} options={{ title: 'Order Details' }} />
     </Stack.Navigator>
   );
 }

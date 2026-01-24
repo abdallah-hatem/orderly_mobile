@@ -48,6 +48,7 @@ export default function GroupsListScreen({ navigation }: any) {
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
     
     const isCreator = creator?.userId === user?.id;
+    const hasActiveOrder = item.orders && item.orders.length > 0;
 
     return (
       <TouchableOpacity 
@@ -62,20 +63,26 @@ export default function GroupsListScreen({ navigation }: any) {
             <View className="flex-row items-center mb-1">
                 <Text className="text-lg font-bold text-black mr-2">{item.name}</Text>
                 {isCreator && (
-                    <View className="bg-amber-100 px-2 py-0.5 rounded-full flex-row items-center">
+                    <View className="bg-amber-100 px-2 py-0.5 rounded-full flex-row items-center mr-2">
                         <Crown size={12} color="#d97706" />
                         <Text className="text-amber-700 text-[10px] font-bold ml-1 uppercase">Creator</Text>
                     </View>
                 )}
+                {hasActiveOrder && (
+                    <View className="bg-green-100 px-2 py-0.5 rounded-full flex-row items-center">
+                        <View className="w-2 h-2 rounded-full bg-green-500 mr-1.5" />
+                        <Text className="text-green-700 text-[10px] font-bold uppercase">Active</Text>
+                    </View>
+                )}
             </View>
-            <Text className="text-gray-500">{item.members.length} members</Text>
+            <Text className="text-gray-500">
+                {item.members.filter(m => m.status === 'ACCEPTED').length} members
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
-
-
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -83,8 +90,6 @@ export default function GroupsListScreen({ navigation }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
       >
-
-
         <Text className="text-xs font-bold text-gray-400 mb-3 tracking-widest uppercase">My Groups</Text>
         {loading && !refreshing ? (
             <ActivityIndicator color="black" className="mt-10" />

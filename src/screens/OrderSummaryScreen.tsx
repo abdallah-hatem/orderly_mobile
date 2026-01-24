@@ -1,15 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
-import { useAuth } from '../context/AuthContext';
-import { User, Receipt as ReceiptIcon, ChevronLeft, Trash2, Edit2 } from 'lucide-react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Image } from 'react-native';
+import { format } from 'date-fns';
 import api from '../api/client';
-import { Order, OrderItem } from '../types';
+import { Order, OrderItem, Receipt, SplitResult } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { User, ChevronLeft, Trash2, Edit2, Utensils, ArrowRight } from 'lucide-react-native';
 
 export default function OrderSummaryScreen({ route, navigation }: any) {
   const { orderId } = route.params;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [settlement, setSettlement] = useState<any>(null);
 
 
 
@@ -17,8 +20,23 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
     try {
       const { data } = await api.get(`/orders/${orderId}`);
       setOrder(data);
+
+      if (data.status !== 'OPEN') {
+          // Fetch receipt and settlement info
+          try {
+              const [receiptRes, settlementRes] = await Promise.all([
+                  api.get(`/receipts/order/${orderId}`),
+                  api.get(`/orders/${orderId}/payments/settlement`)
+              ]);
+              setReceipt(receiptRes.data);
+              setSettlement(settlementRes.data);
+          } catch (err) {
+              console.warn('Failed to fetch settlement data', err);
+          }
+      }
     } catch (error) {
       console.error(error);
+      navigation.navigate('GroupsList');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -82,6 +100,7 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
               fetchOrder();
             } catch (error) {
               console.error(error);
+              navigation.navigate('GroupsList');
             }
           }
         }
@@ -103,6 +122,7 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
               navigation.navigate('Menu', { orderId, restaurantId: order!.restaurantId });
             } catch (error) {
               console.error(error);
+              navigation.navigate('GroupsList');
             }
           }
         }
@@ -115,10 +135,28 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
 
   const groupedItems = order.items.reduce((acc: any, item: OrderItem) => {
       const userId = item.userId;
-      if (!acc[userId]) acc[userId] = { name: item.user.name, items: [] };
+      if (!acc[userId]) {
+          const userSettlement = settlement?.overall?.find((s: any) => s.userId === userId);
+          acc[userId] = { 
+              name: item.user.name, 
+              items: [],
+              total: userSettlement?.total || item.priceAtOrder, // Fallback if no settlement yet
+              sharedCostPortion: userSettlement?.sharedCostPortion || 0
+          };
+      }
       acc[userId].items.push(item);
       return acc;
   }, {});
+
+  // Recalculate totals if settlement is active but groupedItems was built before it loaded
+  if (settlement?.overall) {
+      settlement.overall.forEach((s: any) => {
+          if (groupedItems[s.userId]) {
+              groupedItems[s.userId].total = s.total;
+              groupedItems[s.userId].sharedCostPortion = s.sharedCostPortion;
+          }
+      });
+  }
 
   const isInitiator = currentUser?.id === order.initiatorId;
 
@@ -126,15 +164,37 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
     <View className="flex-1 bg-gray-50">
       <ScrollView 
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
       >
-        <Text className="text-2xl font-bold mb-6">Group Order Summary</Text>
+        <View className="bg-white p-4 rounded-xl mb-6 shadow-sm">
+            <View className="flex-row items-center">
+                <View className="w-16 h-16 bg-gray-100 rounded-lg mr-4 items-center justify-center overflow-hidden">
+                     {order.restaurant.imageUrl ? (
+                        <Image source={{ uri: order.restaurant.imageUrl }} className="w-full h-full" />
+                     ) : (
+                        <Text className="text-2xl">🍽️</Text>
+                     )}
+                </View>
+                <View>
+                    <Text className="text-xl font-bold">{order.restaurant.name}</Text>
+                    <Text className="text-gray-500">{format(new Date(order.createdAt), 'PPP')}</Text>
+                    <View className="bg-gray-100 self-start px-2 py-0.5 rounded-md mt-1">
+                        <Text className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">{order.status}</Text>
+                    </View>
+                </View>
+            </View>
+        </View>
+
+        <Text className="text-lg font-bold mb-3 uppercase text-gray-400 tracking-wider px-1">Order Summary</Text>
 
         {Object.keys(groupedItems).map((userId) => (
             <View key={userId} className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
-                <View className="flex-row items-center mb-3">
-                    <User size={18} color="black" className="mr-2" />
-                    <Text className="font-bold text-lg">{groupedItems[userId].name}</Text>
+                <View className="flex-row items-center justify-between mb-3">
+                    <View className="flex-row items-center">
+                        <User size={18} color="black" className="mr-2" />
+                        <Text className="font-bold text-lg">{groupedItems[userId].name}</Text>
+                    </View>
+                    <Text className="font-bold text-lg text-black">{(groupedItems[userId].total || 0).toFixed(2)} EGP</Text>
                 </View>
 
                 {groupedItems[userId].items.map((item: OrderItem) => {
@@ -148,7 +208,7 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
                                 ))}
                             </View>
                             <View className="flex-row items-center">
-                                <Text className="font-bold mr-4 text-gray-900">${item.priceAtOrder.toFixed(2)}</Text>
+                                <Text className="font-bold mr-4 text-gray-900">{(item.priceAtOrder || 0).toFixed(2)} EGP</Text>
                                 {order.status === 'OPEN' && (
                                     <View className="flex-row">
                                         {/* Only owner can edit their own item */}
@@ -176,8 +236,75 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
                         </View>
                     );
                 })}
+
+                {groupedItems[userId].sharedCostPortion > 0 && (
+                    <View className="mt-2 pt-2 border-t border-gray-50 flex-row justify-between">
+                        <Text className="text-gray-400 text-xs italic">+ Shared tax & fees</Text>
+                        <Text className="text-gray-400 text-xs italic">{(groupedItems[userId].sharedCostPortion || 0).toFixed(2)} EGP</Text>
+                    </View>
+                )}
             </View>
         ))}
+
+        {receipt && (
+            <View className="bg-white rounded-2xl p-6 mb-4 shadow-sm">
+                <Text className="text-lg font-bold mb-4">Shared Costs & Fees</Text>
+                <View className="flex-row justify-between mb-2">
+                    <Text className="text-gray-600">Subtotal</Text>
+                    <Text className="font-medium">{(receipt.subtotal || 0).toFixed(2)} EGP</Text>
+                </View>
+                <View className="flex-row justify-between mb-2">
+                    <Text className="text-gray-600">Tax</Text>
+                    <Text className="font-medium">{(receipt.tax || 0).toFixed(2)} EGP</Text>
+                </View>
+                <View className="flex-row justify-between mb-2">
+                    <Text className="text-gray-600">Service Fee</Text>
+                    <Text className="font-medium">{(receipt.serviceFee || 0).toFixed(2)} EGP</Text>
+                </View>
+                <View className="flex-row justify-between mb-2">
+                    <Text className="text-gray-600">Delivery Fee</Text>
+                    <Text className="font-medium">{(receipt.deliveryFee || 0).toFixed(2)} EGP</Text>
+                </View>
+                <View className="flex-row justify-between pt-3 border-t border-gray-100 mt-2">
+                    <Text className="font-bold text-xl">Total Paid</Text>
+                    <Text className="font-bold text-xl">{(receipt.totalAmount || 0).toFixed(2)} EGP</Text>
+                </View>
+            </View>
+        )}
+
+        {order.payments && order.payments.length > 0 && (
+            <View className="bg-white rounded-2xl p-6 mb-4 shadow-sm border-l-4 border-green-500">
+                <Text className="text-lg font-bold mb-4">Who Paid What?</Text>
+                {order.payments.map((payment: any, idx: number) => (
+                    <View key={idx} className="flex-row justify-between mb-2">
+                        <Text className="text-gray-800">{payment.user?.name || 'Unknown'}</Text>
+                        <Text className="font-bold text-green-600">{(payment.amount || 0).toFixed(2)} EGP</Text>
+                    </View>
+                ))}
+            </View>
+        )}
+
+        {settlement && settlement.settlements && settlement.settlements.length > 0 && (
+            <View className="bg-black rounded-2xl p-6 mb-6">
+                <Text className="text-white text-xl font-bold mb-4 text-center">Settlement Plan</Text>
+                {settlement.settlements.map((s: any, idx: number) => (
+                    <View key={idx} className="flex-row items-center justify-between mb-4 border-b border-gray-800 pb-2">
+                        <View className="flex-row items-center flex-1">
+                            <Text className="text-red-400 font-bold text-lg">{s.from}</Text>
+                            <ArrowRight size={18} color="#6B7280" style={{ marginHorizontal: 8 }} />
+                            <Text className="text-green-400 font-bold text-lg">{s.to}</Text>
+                        </View>
+                        <Text className="text-white font-bold text-xl ml-2">{(s.amount || 0).toFixed(2)} EGP</Text>
+                    </View>
+                ))}
+            </View>
+        )}
+
+        {settlement && settlement.settlements && settlement.settlements.length === 0 && order.status !== 'OPEN' && (
+             <View className="bg-green-50 border border-green-100 rounded-2xl p-6 mb-6 items-center">
+                <Text className="text-green-800 font-bold text-lg text-center">All set! No pending payments.</Text>
+             </View>
+        )}
 
         {order.status === 'OPEN' ? (
              <TouchableOpacity 

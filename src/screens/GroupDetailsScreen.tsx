@@ -9,6 +9,7 @@ export default function GroupDetailsScreen({ route, navigation }: any) {
   const { groupId, name } = route.params;
   const { user } = useAuth();
   const [group, setGroup] = useState<Group | null>(null);
+  const [activeMemberTab, setActiveMemberTab] = useState<'ACCEPTED' | 'PENDING' | 'REJECTED'>('ACCEPTED');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -87,6 +88,29 @@ export default function GroupDetailsScreen({ route, navigation }: any) {
     );
   };
 
+  const handleKickMember = (targetUserId: string, targetUserName: string) => {
+    Alert.alert(
+      'Remove Member',
+      `Are you sure you want to remove ${targetUserName} from the group?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/groups/${groupId}/members/${targetUserId}`);
+              fetchGroup(); // Refresh list
+              Alert.alert('Success', 'Member removed');
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to remove member');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleLeaveGroup = () => {
     Alert.alert(
       'Leave Group',
@@ -142,7 +166,9 @@ export default function GroupDetailsScreen({ route, navigation }: any) {
           
           <View className="flex-row border-t border-gray-100 pt-4">
             <View className="flex-1 items-center">
-              <Text className="text-xl font-bold">{group.members.length}</Text>
+              <Text className="text-xl font-bold">
+                {group.members.filter(m => m.status === 'ACCEPTED').length}
+              </Text>
               <Text className="text-gray-500 text-xs">MEMBERS</Text>
             </View>
             <View className="flex-1 items-center border-x border-gray-100">
@@ -158,7 +184,9 @@ export default function GroupDetailsScreen({ route, navigation }: any) {
                 onPress={() => navigation.navigate('OrderSummary', { orderId: group.orders.find(o => o.status === 'OPEN')?.id })}
             >
                 <Utensils color="white" size={20} className="mr-2" />
-                <Text className="text-white font-bold text-lg ml-2">Join Active Order</Text>
+                <Text className="text-white font-bold text-lg ml-2">
+                    {group.orders.find(o => o.status === 'OPEN')?.initiatorId === user?.id ? 'Resume Your Created Order' : 'Join Active Order'}
+                </Text>
             </TouchableOpacity>
         ) : (
             <TouchableOpacity 
@@ -170,19 +198,68 @@ export default function GroupDetailsScreen({ route, navigation }: any) {
             </TouchableOpacity>
         )}
 
-        <Text className="text-lg font-bold mb-3 px-1 text-gray-800">Members</Text>
+        <View className="flex-row items-center justify-between mb-3 px-1">
+            <Text className="text-lg font-bold text-gray-800">Members</Text>
+        </View>
+
+        {/* Member Tab Switcher */}
+        <View style={{ flexDirection: 'row', marginBottom: 12, backgroundColor: '#e5e7eb', borderRadius: 8, padding: 2 }}>
+            <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 6, alignItems: 'center', backgroundColor: activeMemberTab === 'ACCEPTED' ? 'white' : 'transparent', borderRadius: 6 }}
+                onPress={() => setActiveMemberTab('ACCEPTED')}
+            >
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: activeMemberTab === 'ACCEPTED' ? '#000' : '#6b7280' }}>
+                    Accepted ({group.members.filter(m => m.status === 'ACCEPTED').length})
+                </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 6, alignItems: 'center', backgroundColor: activeMemberTab === 'PENDING' ? 'white' : 'transparent', borderRadius: 6 }}
+                onPress={() => setActiveMemberTab('PENDING')}
+            >
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: activeMemberTab === 'PENDING' ? '#000' : '#6b7280' }}>
+                    Pending ({group.members.filter(m => m.status === 'PENDING').length})
+                </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 6, alignItems: 'center', backgroundColor: activeMemberTab === 'REJECTED' ? 'white' : 'transparent', borderRadius: 6 }}
+                onPress={() => setActiveMemberTab('REJECTED')}
+            >
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: activeMemberTab === 'REJECTED' ? '#000' : '#6b7280' }}>
+                    Declined ({group.members.filter(m => m.status === 'REJECTED').length})
+                </Text>
+            </TouchableOpacity>
+        </View>
+
         <View className="bg-white rounded-2xl p-4 shadow-sm">
-            {group.members.map((member: GroupMember) => (
-                <View key={member.id} className="flex-row items-center py-2 border-b border-gray-50 last:border-0">
-                    <View className="bg-gray-200 w-8 h-8 rounded-full items-center justify-center mr-3">
-                        <Text className="text-xs font-bold">{member.user.name.charAt(0)}</Text>
-                    </View>
-                    <View className="flex-1">
-                        <Text className="font-medium">{member.user.name}</Text>
-                        <Text className="text-xs text-gray-500">{member.status}</Text>
-                    </View>
+            {group.members
+                .filter((member: GroupMember) => member.status === activeMemberTab)
+                .length > 0 ? (
+                group.members
+                    .filter((member: GroupMember) => member.status === activeMemberTab)
+                    .map((member: GroupMember) => (
+                        <View key={member.id} className="flex-row items-center py-2 border-b border-gray-50 last:border-0">
+                            <View className="bg-gray-200 w-8 h-8 rounded-full items-center justify-center mr-3">
+                                <Text className="text-xs font-bold">{member.user.name.charAt(0)}</Text>
+                            </View>
+                            <View className="flex-1">
+                                <Text className="font-medium">{member.user.name}</Text>
+                                <Text className="text-xs text-gray-500">{member.status}</Text>
+                            </View>
+                            {isCreator && member.user.id !== user?.id && (
+                                <TouchableOpacity 
+                                    onPress={() => handleKickMember(member.user.id, member.user.name)}
+                                    style={{ padding: 8 }}
+                                >
+                                    <Trash2 size={18} color="#ef4444" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    ))
+            ) : (
+                <View className="py-8 items-center">
+                    <Text className="text-gray-400 italic">No {activeMemberTab.toLowerCase()} members</Text>
                 </View>
-            ))}
+            )}
             <TouchableOpacity 
                 className="flex-row items-center py-3 mt-2"
                 onPress={() => navigation.navigate('InviteMember', { groupId })}
