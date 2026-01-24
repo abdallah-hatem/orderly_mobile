@@ -114,7 +114,7 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
               onPress={handleUpload}
             >
               <Camera color="white" size={20} className="mr-2" />
-              <Text className="text-white font-bold text-lg">Select Receipt Image</Text>
+              <Text className="text-white font-bold text-lg ml-2">Select Receipt Image</Text>
             </TouchableOpacity>
           </View>
         ) : (

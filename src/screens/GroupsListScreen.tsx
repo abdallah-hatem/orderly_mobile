@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, ScrollView, Alert } from 'react-native';
 import { Plus, Users } from 'lucide-react-native';
 import api from '../api/client';
 import { Group } from '../types';
@@ -118,13 +118,6 @@ export default function GroupsListScreen({ navigation }: any) {
             </View>
         )}
       </ScrollView>
-
-      <TouchableOpacity 
-        className="absolute bottom-6 right-6 bg-black w-14 h-14 rounded-full items-center justify-center shadow-lg"
-        onPress={() => navigation.navigate('CreateGroup')}
-      >
-        <Plus color="white" size={30} />
-      </TouchableOpacity>
     </View>
   );
 }

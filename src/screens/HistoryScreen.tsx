@@ -76,6 +76,7 @@ export default function HistoryScreen({ navigation }: any) {
           data={displayOrders}
           renderItem={renderItem}
           keyExtractor={item => item.id}
+          contentContainerStyle={{ paddingBottom: 100 }}
         />
       ) : (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

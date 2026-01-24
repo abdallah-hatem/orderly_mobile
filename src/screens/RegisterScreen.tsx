@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import api from '../api/client';
 
 export default function RegisterScreen({ navigation }: any) {
@@ -23,8 +23,14 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView className="flex-1 bg-white">
-      <View className="p-6 justify-center">
+    <KeyboardAvoidingView 
+      className="flex-1 bg-white"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text className="text-3xl font-bold mb-8 text-black">Create Account</Text>
         
         <View className="mb-4">
@@ -67,7 +73,7 @@ export default function RegisterScreen({ navigation }: any) {
         >
           {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Register</Text>}
         </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

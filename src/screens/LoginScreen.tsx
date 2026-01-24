@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
@@ -23,46 +23,54 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <View className="flex-1 bg-white p-6 justify-center">
-      <Text className="text-3xl font-bold mb-8 text-black">Welcome Back</Text>
-      
-      <View className="mb-4">
-        <Text className="text-gray-600 mb-1">Email</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3"
-          placeholder="email@example.com"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-      </View>
-
-      <View className="mb-8">
-        <Text className="text-gray-600 mb-1">Password</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3"
-          placeholder="••••••••"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-      </View>
-
-      <TouchableOpacity 
-        className="bg-black p-4 rounded-lg items-center"
-        onPress={handleLogin}
-        disabled={loading}
+    <KeyboardAvoidingView 
+      className="flex-1 bg-white"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+        keyboardShouldPersistTaps="handled"
       >
-        {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Login</Text>}
-      </TouchableOpacity>
+        <Text className="text-3xl font-bold mb-8 text-black">Welcome Back</Text>
+        
+        <View className="mb-4">
+          <Text className="text-gray-600 mb-1">Email</Text>
+          <TextInput
+            className="border border-gray-300 rounded-lg p-3"
+            placeholder="email@example.com"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+        </View>
 
-      <TouchableOpacity 
-        className="mt-4 items-center"
-        onPress={() => navigation.navigate('Register')}
-      >
-        <Text className="text-gray-600">Don't have an account? <Text className="text-black font-bold">Register</Text></Text>
-      </TouchableOpacity>
-    </View>
+        <View className="mb-8">
+          <Text className="text-gray-600 mb-1">Password</Text>
+          <TextInput
+            className="border border-gray-300 rounded-lg p-3"
+            placeholder="••••••••"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+        </View>
+
+        <TouchableOpacity 
+          className="bg-black p-4 rounded-lg items-center"
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Login</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          className="mt-4 items-center"
+          onPress={() => navigation.navigate('Register')}
+        >
+          <Text className="text-gray-600">Don't have an account? <Text className="text-black font-bold">Register</Text></Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

@@ -99,9 +99,9 @@ export default function MenuScreen({ route, navigation }: any) {
       />
 
       {cart.length > 0 && (
-        <View className="p-4 border-t border-gray-100 bg-white shadow-lg">
+        <View className="bg-transparent border-t border-gray-100 mb-[105px] min-w-[250px] w-[90%] mx-auto">
           <TouchableOpacity 
-            className="bg-black p-4 rounded-xl flex-row justify-between items-center"
+            className="bg-black p-4 rounded-3xl flex-row justify-between items-center shadow-lg"
             onPress={handleSubmitItems}
             disabled={submitting}
           >

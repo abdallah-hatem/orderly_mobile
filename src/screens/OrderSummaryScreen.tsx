@@ -199,9 +199,9 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
       </ScrollView>
 
       {order.status === 'OPEN' && isInitiator && (
-           <View className="p-4 bg-white border-t border-gray-100">
+           <View className="bg-transparent border-t border-gray-100 mb-[105px] min-w-[250px] w-[70%] mx-auto">
                <TouchableOpacity 
-                    className="bg-black p-4 rounded-xl items-center"
+                    className="bg-black p-4 rounded-3xl items-center"
                     onPress={handleCloseOrder}
                >
                    <Text className="text-white font-bold text-lg">Close Order & Split Bill</Text>

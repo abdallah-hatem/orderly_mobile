@@ -3,7 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
 import { TouchableOpacity, Text } from 'react-native';
-import { Users, Clock, User } from 'lucide-react-native';
+import { Users, Clock, User, Plus } from 'lucide-react-native';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -27,7 +27,21 @@ const Tab = createBottomTabNavigator();
 function GroupsStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: true }}>
-      <Stack.Screen name="GroupsList" component={GroupsListScreen} options={{ title: 'My Groups' }} />
+      <Stack.Screen 
+        name="GroupsList" 
+        component={GroupsListScreen} 
+        options={({ navigation }: any) => ({
+          title: 'My Groups',
+          headerRight: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('CreateGroup')} 
+              style={{ marginRight: 16 }}
+            >
+              <Plus size={28} color="#000" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
       <Stack.Screen name="CreateGroup" component={CreateGroupScreen} options={{ title: 'Create Group' }} />
       <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} options={{ title: 'Group Orders' }} />
       <Stack.Screen name="RestaurantSelection" component={RestaurantSelectionScreen} options={{ title: 'Select Restaurant' }} />
@@ -78,12 +92,25 @@ function MainTabs() {
         tabBarActiveTintColor: '#000',
         tabBarInactiveTintColor: '#9ca3af',
         tabBarStyle: {
+          position: 'absolute',
+          bottom: 28,
+          left: 20,
+          right: 20,
+          marginHorizontal: 20,
           backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
+          borderRadius: 30,
+          height: 64,
           paddingBottom: 8,
           paddingTop: 8,
-          height: 60,
+          borderTopWidth: 0,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 4,
+          },
+          shadowOpacity: 0.15,
+          shadowRadius: 8,
+          elevation: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
