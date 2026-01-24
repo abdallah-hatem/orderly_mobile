@@ -32,7 +32,10 @@ export default function HistoryScreen({ navigation }: any) {
       style={{ backgroundColor: 'white', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}
       onPress={() => {
         if (item.status === 'OPEN') {
-          navigation.navigate('OrderSummary', { orderId: item.id });
+          navigation.getParent()?.navigate('Groups', {
+            screen: 'OrderSummary',
+            params: { orderId: item.id }
+          });
         } else {
           navigation.navigate('PastOrder', { orderId: item.id });
         }

@@ -57,7 +57,7 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
           onPress: async () => {
             try {
               await api.put(`/orders/${orderId}/cancel`);
-              navigation.navigate('Groups');
+              navigation.navigate('GroupsList');
             } catch (error) {
               console.error(error);
             }
