@@ -54,7 +54,7 @@ export default function PastOrderScreen({ route }: any) {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {/* Header Info */}
         <View className="bg-white p-4 rounded-xl mb-6 shadow-sm">
             <View className="flex-row items-center mb-4">

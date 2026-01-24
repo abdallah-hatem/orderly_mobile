@@ -9,8 +9,14 @@ export default function HistoryScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchOrders();
+    });
+
+    fetchOrders(); // Initial fetch
+
+    return unsubscribe;
+  }, [navigation]);
 
   const fetchOrders = async () => {
     try {

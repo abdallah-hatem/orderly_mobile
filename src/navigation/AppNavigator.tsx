@@ -3,7 +3,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
 import { TouchableOpacity, Text } from 'react-native';
-import { Users, Clock, User, Plus } from 'lucide-react-native';
+import { Users, Clock, User, Plus, Bell } from 'lucide-react-native';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -19,6 +20,7 @@ import InviteMemberScreen from '../screens/InviteMemberScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import PastOrderScreen from '../screens/PastOrderScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import InvitationsScreen from '../screens/InvitationsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -83,6 +85,15 @@ function ProfileStack() {
   );
 }
 
+// Invitations Stack Navigator
+function InvitationsStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: true }}>
+      <Stack.Screen name="InvitationsList" component={InvitationsScreen} options={{ title: 'Invitations' }} />
+    </Stack.Navigator>
+  );
+}
+
 // Main Tab Navigator
 function MainTabs() {
   return (
@@ -133,6 +144,13 @@ function MainTabs() {
         }}
       />
       <Tab.Screen 
+        name="Invitations" 
+        component={InvitationsStack}
+        options={{
+          tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen 
         name="Profile" 
         component={ProfileStack}
         options={{
@@ -145,6 +163,7 @@ function MainTabs() {
 
 export const AppNavigator = () => {
   const { user, loading } = useAuth();
+  usePushNotifications(user);
 
   if (loading) return null;
 

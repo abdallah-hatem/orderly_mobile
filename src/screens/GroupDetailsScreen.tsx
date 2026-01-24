@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, ScrollView, Alert, TextInput } from 'react-native';
-import { Utensils, UserPlus, Info, Edit2, Trash2 } from 'lucide-react-native';
+import { Utensils, UserPlus, Info, Edit2, Trash2, LogOut } from 'lucide-react-native';
 import api from '../api/client';
 import { Group, GroupMember } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -87,6 +87,29 @@ export default function GroupDetailsScreen({ route, navigation }: any) {
     );
   };
 
+  const handleLeaveGroup = () => {
+    Alert.alert(
+      'Leave Group',
+      'Are you sure you want to leave this group?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/groups/${groupId}/leave`);
+              navigation.navigate('GroupsList');
+              Alert.alert('Success', "You've left the group");
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to leave group');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (loading) return <ActivityIndicator size="large" color="black" className="mt-10" />;
   if (!group) return <Text className="text-center mt-10">Group not found</Text>;
 
@@ -94,7 +117,7 @@ export default function GroupDetailsScreen({ route, navigation }: any) {
     <View className="flex-1 bg-gray-50">
       <ScrollView 
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
       >
         <View className="bg-white p-6 rounded-2xl mb-6 shadow-sm">
           <View className="flex-row justify-between items-start mb-2">
@@ -108,6 +131,11 @@ export default function GroupDetailsScreen({ route, navigation }: any) {
                   <Trash2 size={20} color="#ef4444" />
                 </TouchableOpacity>
               </View>
+            )}
+            {!isCreator && (
+              <TouchableOpacity onPress={handleLeaveGroup} style={{ padding: 8 }}>
+                <LogOut size={20} color="#ef4444" />
+              </TouchableOpacity>
             )}
           </View>
           <Text className="text-gray-500 mb-4">{group.description || 'No description'}</Text>

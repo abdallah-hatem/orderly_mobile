@@ -16,6 +16,8 @@ export interface GroupMember {
   id: string;
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
   user: User;
+  userId: string;
+  createdAt: string;
 }
 
 export interface Restaurant {
@@ -81,11 +83,22 @@ export interface OrderItem {
 
 export interface Receipt {
     id: string;
+    orderId: string;
+    imageUrl: string;
     subtotal: number;
     tax: number;
     serviceFee: number;
     deliveryFee: number;
     totalAmount: number;
+    rawParsedData?: any;
+}
+
+export interface ItemSplit {
+    id: string;
+    name: string;
+    quantity: number;
+    originalPrice: number;
+    currentPrice: number;
 }
 
 export interface SplitResult {
@@ -94,4 +107,5 @@ export interface SplitResult {
     itemsTotal: number;
     sharedCostPortion: number;
     total: number;
+    items?: ItemSplit[];
 }

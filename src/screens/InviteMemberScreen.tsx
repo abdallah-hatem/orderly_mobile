@@ -76,7 +76,7 @@ export default function InviteMemberScreen({ route, navigation }: any) {
                     ) : (
                         <>
                             <UserPlus size={16} color="white" className="mr-2" />
-                            <Text className="text-white font-bold">Invite</Text>
+                            <Text className="text-white font-bold ml-2">Invite</Text>
                         </>
                     )}
                 </TouchableOpacity>
