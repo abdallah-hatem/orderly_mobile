@@ -60,8 +60,9 @@ export interface Order {
   id: string;
   status: 'OPEN' | 'CLOSED' | 'PAID' | 'CANCELLED';
   initiatorId: string;
-  restaurantId: string;
-  restaurant: Restaurant;
+  restaurantId?: string;
+  customRestaurantName?: string;
+  restaurant?: Restaurant;
   items: OrderItem[];
   createdAt: string;
   receipt?: Receipt;
@@ -73,8 +74,9 @@ export interface OrderItem {
   id: string;
   userId: string;
   user: { name: string };
-  menuItemId: string;
-  menuItem: MenuItem;
+  menuItemId?: string;
+  customItemName?: string;
+  menuItem?: MenuItem;
   variant?: MenuItemVariant;
   addons: { addon: MenuItemAddon }[];
   priceAtOrder: number;

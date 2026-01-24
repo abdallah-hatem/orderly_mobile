@@ -88,7 +88,7 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
   const handleDeleteItem = (item: OrderItem, ownerName: string) => {
     Alert.alert(
       'Remove Item',
-      `Are you sure you want to remove "${item.menuItem.name}" for ${ownerName}?`,
+      `Are you sure you want to remove "${item.menuItem?.name || item.customItemName || 'this item'}" for ${ownerName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -111,7 +111,7 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
   const handleEditItem = (item: OrderItem, ownerName: string) => {
     Alert.alert(
       'Edit Item',
-      `This will remove "${item.menuItem.name}" for ${ownerName} and take you back to the menu. Continue?`,
+      `This will remove "${item.menuItem?.name || item.customItemName || 'this item'}" for ${ownerName} and take you back to the menu. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -169,14 +169,16 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
         <View className="bg-white p-4 rounded-xl mb-6 shadow-sm">
             <View className="flex-row items-center">
                 <View className="w-16 h-16 bg-gray-100 rounded-lg mr-4 items-center justify-center overflow-hidden">
-                     {order.restaurant.imageUrl ? (
+                     {order.restaurant?.imageUrl ? (
                         <Image source={{ uri: order.restaurant.imageUrl }} className="w-full h-full" />
                      ) : (
-                        <Text className="text-2xl">🍽️</Text>
+                        <View className="items-center justify-center">
+                            <Text className="text-2xl">🍽️</Text>
+                        </View>
                      )}
                 </View>
                 <View>
-                    <Text className="text-xl font-bold">{order.restaurant.name}</Text>
+                    <Text className="text-xl font-bold">{order.restaurant?.name || order.customRestaurantName || 'Custom Restaurant'}</Text>
                     <Text className="text-gray-500">{format(new Date(order.createdAt), 'PPP')}</Text>
                     <View className="bg-gray-100 self-start px-2 py-0.5 rounded-md mt-1">
                         <Text className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">{order.status}</Text>
@@ -202,13 +204,15 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
                     return (
                         <View key={item.id} className="flex-row justify-between mb-4">
                             <View className="flex-1">
-                                <Text className="font-medium text-gray-900">{item.menuItem.name} {item.variant ? `(${item.variant.name})` : ''}</Text>
+                                <Text className="font-medium text-gray-900">
+                                    {item.quantity > 1 ? `${item.quantity}x ` : ''}{item.menuItem?.name || item.customItemName || 'Unnamed Item'} {item.variant ? `(${item.variant.name})` : ''}
+                                </Text>
                                 {item.addons.map((a: any, idx: number) => (
                                     <Text key={idx} className="text-gray-500 text-xs">+ {a.addon.name}</Text>
                                 ))}
                             </View>
                             <View className="flex-row items-center">
-                                <Text className="font-bold mr-4 text-gray-900">{(item.priceAtOrder || 0).toFixed(2)} EGP</Text>
+                                <Text className="font-bold mr-4 text-gray-900">{((item.priceAtOrder || 0) * item.quantity).toFixed(2)} EGP</Text>
                                 {order.status === 'OPEN' && (
                                     <View className="flex-row">
                                         {/* Only owner can edit their own item */}

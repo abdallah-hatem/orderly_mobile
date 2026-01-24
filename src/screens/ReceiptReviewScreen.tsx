@@ -11,7 +11,7 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [split, setSplit] = useState<SplitResult[]>([]);
   
-  const [fees, setFees] = useState({ subtotal: '', tax: '', serviceFee: '', deliveryFee: '' });
+  const [fees, setFees] = useState({ total: '', tax: '', serviceFee: '', deliveryFee: '', subtotal: '' });
   const [itemPriceOverrides, setItemPriceOverrides] = useState<{[key: string]: string}>({});
   const [editing, setEditing] = useState(false);
 
@@ -22,10 +22,11 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
   useEffect(() => {
     if (receipt) {
         setFees({
-            subtotal: (receipt.subtotal || 0).toString(),
+            total: (receipt.totalAmount || 0).toString(),
             tax: (receipt.tax || 0).toString(),
             serviceFee: (receipt.serviceFee || 0).toString(),
-            deliveryFee: (receipt.deliveryFee || 0).toString()
+            deliveryFee: (receipt.deliveryFee || 0).toString(),
+            subtotal: (receipt.subtotal || 0).toString()
         });
         
         // Load existing individual overrides
@@ -42,20 +43,39 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
     }
   }, [receipt, split]);
 
-  // Recalculate Subtotal when item prices change
+  // Recalculate Total/Subtotal when item prices change
   useEffect(() => {
     if (editing && split.length > 0) {
-        let total = 0;
+        let itemsSum = 0;
         split.forEach(s => {
             s.items?.forEach(item => {
                 const priceStr = itemPriceOverrides[item.id];
                 const price = priceStr !== undefined ? parseFloat(priceStr) : item.currentPrice;
-                total += (price || 0);
+                itemsSum += (price || 0);
             });
         });
-        setFees(f => ({ ...f, subtotal: total.toFixed(2) }));
+        
+        const currentTax = parseFloat(fees.tax) || 0;
+        const currentService = parseFloat(fees.serviceFee) || 0;
+        const currentDelivery = parseFloat(fees.deliveryFee) || 0;
+        
+        const newTotal = itemsSum + currentTax + currentService + currentDelivery;
+        setFees(f => ({ ...f, subtotal: itemsSum.toFixed(2), total: newTotal.toFixed(2) }));
     }
   }, [itemPriceOverrides, split, editing]);
+
+  // Handle manual Total/Fee changes to update Subtotal
+  const handleBillingChange = (field: string, value: string) => {
+      const newFees = { ...fees, [field]: value };
+      
+      const total = parseFloat(newFees.total) || 0;
+      const tax = parseFloat(newFees.tax) || 0;
+      const service = parseFloat(newFees.serviceFee) || 0;
+      const delivery = parseFloat(newFees.deliveryFee) || 0;
+      
+      const subtotal = total - (tax + service + delivery);
+      setFees({ ...newFees, subtotal: subtotal.toFixed(2) });
+  };
 
   const handleUpload = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -108,11 +128,12 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
         setLoading(false);
     }
   };
+  const liveTotal = editing ? (parseFloat(fees.total) || 0) : (receipt?.totalAmount || 0);
 
   const handleCalculateSettlement = async () => {
     if (!receipt) return;
     
-    const totalPaid = receipt.totalAmount;
+    const totalPaid = liveTotal;
     const totalEntered = Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
     const difference = Math.abs(totalPaid - totalEntered);
 
@@ -248,84 +269,71 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                       )}
                   </View>
 
-                  <View className="flex-row justify-between items-center mb-2">
-                      <Text className="text-gray-600">Subtotal</Text>
+                  <View className="flex-row justify-between items-center mb-4">
+                      <Text className="text-gray-600 font-bold">TOTAL PAID</Text>
                       {editing ? (
                            <TextInput 
-                              className="border border-gray-300 rounded px-2 py-1 w-24 text-right bg-white"
-                              value={fees.subtotal}
-                              onChangeText={(t) => setFees({...fees, subtotal: t})}
+                              className="border-2 border-black rounded-xl px-3 py-2 w-32 text-right bg-gray-50 font-bold text-lg"
+                              value={fees.total}
+                              onChangeText={(t) => handleBillingChange('total', t)}
                               keyboardType="numeric"
                           />
                       ) : (
-                          <Text className="font-medium">{receipt.subtotal.toFixed(2)} EGP</Text>
+                          <Text className="font-bold text-xl">{receipt.totalAmount.toFixed(2)} EGP</Text>
                       )}
                   </View>
 
-                  {editing ? (
-                      <>
-                          <View className="flex-row justify-between items-center mb-2">
-                              <Text className="text-gray-600">Tax</Text>
-                              <TextInput 
+                  <View className="border-t border-gray-100 pt-4 mb-2">
+                       <View className="flex-row justify-between items-center mb-2">
+                          <Text className="text-gray-600">Tax</Text>
+                          {editing ? (
+                               <TextInput 
                                   className="border border-gray-300 rounded px-2 py-1 w-24 text-right"
                                   value={fees.tax}
-                                  onChangeText={(t) => setFees({...fees, tax: t})}
+                                  onChangeText={(t) => handleBillingChange('tax', t)}
                                   keyboardType="numeric"
                                   placeholder="0.00"
                               />
-                          </View>
-                          <View className="flex-row justify-between items-center mb-2">
-                              <Text className="text-gray-600">Service Fee</Text>
-                              <TextInput 
+                          ) : (
+                              <Text className="font-medium">{receipt.tax.toFixed(2)} EGP</Text>
+                          )}
+                      </View>
+                      <View className="flex-row justify-between items-center mb-2">
+                          <Text className="text-gray-600">Service Fee</Text>
+                          {editing ? (
+                               <TextInput 
                                   className="border border-gray-300 rounded px-2 py-1 w-24 text-right"
                                   value={fees.serviceFee}
-                                  onChangeText={(t) => setFees({...fees, serviceFee: t})}
+                                  onChangeText={(t) => handleBillingChange('serviceFee', t)}
                                   keyboardType="numeric"
                                   placeholder="0.00"
                               />
-                          </View>
-                          <View className="flex-row justify-between items-center mb-2">
-                              <Text className="text-gray-600">Delivery Fee</Text>
-                              <TextInput 
+                          ) : (
+                              <Text className="font-medium">{receipt.serviceFee.toFixed(2)} EGP</Text>
+                          )}
+                      </View>
+                      <View className="flex-row justify-between items-center mb-2">
+                          <Text className="text-gray-600">Delivery Fee</Text>
+                          {editing ? (
+                               <TextInput 
                                   className="border border-gray-300 rounded px-2 py-1 w-24 text-right"
                                   value={fees.deliveryFee}
-                                  onChangeText={(t) => setFees({...fees, deliveryFee: t})}
+                                  onChangeText={(t) => handleBillingChange('deliveryFee', t)}
                                   keyboardType="numeric"
                                   placeholder="0.00"
                               />
-                          </View>
-                          <View className="flex-row justify-between pt-3 border-t border-gray-100 mt-2">
-                              <Text className="font-bold text-xl">New Total</Text>
-                              <Text className="font-bold text-xl">
-                                  {(
-                                      (parseFloat(fees.subtotal) || 0) + 
-                                      (parseFloat(fees.tax) || 0) + 
-                                      (parseFloat(fees.serviceFee) || 0) + 
-                                      (parseFloat(fees.deliveryFee) || 0)
-                                  ).toFixed(2)} EGP
-                              </Text>
-                          </View>
-                      </>
-                  ) : (
-                      <>
-                          <View className="flex-row justify-between mb-2">
-                              <Text className="text-gray-600">Tax</Text>
-                              <Text className="font-medium">{receipt.tax.toFixed(2)} EGP</Text>
-                          </View>
-                          <View className="flex-row justify-between mb-2">
-                              <Text className="text-gray-600">Service Fee</Text>
-                              <Text className="font-medium">{receipt.serviceFee.toFixed(2)} EGP</Text>
-                          </View>
-                          <View className="flex-row justify-between mb-2">
-                              <Text className="text-gray-600">Delivery Fee</Text>
+                          ) : (
                               <Text className="font-medium">{receipt.deliveryFee.toFixed(2)} EGP</Text>
-                          </View>
-                          <View className="flex-row justify-between pt-3 border-t border-gray-100 mt-2">
-                              <Text className="font-bold text-xl">Total Paid</Text>
-                              <Text className="font-bold text-xl">{receipt.totalAmount.toFixed(2)} EGP</Text>
-                          </View>
-                      </>
-                  )}
+                          )}
+                      </View>
+                  </View>
+
+                  <View className="flex-row justify-between pt-3 border-t border-gray-100 mt-2">
+                      <Text className="text-gray-400 font-medium">Calculated Subtotal</Text>
+                      <Text className="font-bold text-gray-500">
+                          {editing ? fees.subtotal : receipt.subtotal.toFixed(2)} EGP
+                      </Text>
+                  </View>
               </View>
 
               <Text className="text-lg font-bold mb-3 px-1">How much everyone owes</Text>
@@ -389,25 +397,25 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
               ))}
 
               <View className={`mt-4 p-4 rounded-xl flex-row justify-between items-center ${
-                  Math.abs(receipt.totalAmount - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
+                  Math.abs(liveTotal - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
                   ? 'bg-green-50 border border-green-200'
                   : 'bg-red-50 border border-red-200'
               }`}>
                   <View>
                       <Text className="text-xs font-bold text-gray-400 uppercase">Balance Status</Text>
                       <Text className={`font-bold ${
-                          Math.abs(receipt.totalAmount - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
+                          Math.abs(liveTotal - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
                           ? 'text-green-700'
                           : 'text-red-700'
                       }`}>
-                          {Math.abs(receipt.totalAmount - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
+                          {Math.abs(liveTotal - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)) < 0.01
                           ? 'Matched perfectly!'
-                          : `Mismatch: ${(receipt.totalAmount - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)).toFixed(2)} EGP`}
+                          : `Mismatch: ${(liveTotal - Object.values(payments).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)).toFixed(2)} EGP`}
                       </Text>
                   </View>
                   <View className="items-end">
                       <Text className="text-xs font-bold text-gray-400 uppercase">Target Total</Text>
-                      <Text className="font-bold text-black">{receipt.totalAmount.toFixed(2)} EGP</Text>
+                      <Text className="font-bold text-black">{liveTotal.toFixed(2)} EGP</Text>
                   </View>
               </View>
 

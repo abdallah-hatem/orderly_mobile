@@ -44,7 +44,9 @@ export default function HistoryScreen({ navigation }: any) {
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.restaurant.name}</Text>
+        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
+            {item.restaurant?.name || item.customRestaurantName || 'Custom Restaurant'}
+        </Text>
         <Text style={{ color: '#6b7280' }}>{item?.group?.name || 'No group'}</Text>
         <Text style={{ fontSize: 12, color: '#9ca3af' }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
       </View>
