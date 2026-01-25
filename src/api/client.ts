@@ -7,7 +7,7 @@ import { Platform, Alert } from 'react-native';
 // To find it: 
 // - macOS: System Settings > Network > Your connection > IP address
 // - Windows: Run 'ipconfig' in CMD and look for IPv4 Address
-const LOCAL_IP = '192.168.1.6'; // <<< CHANGE THIS TO YOUR IP
+const LOCAL_IP = '192.168.1.184'; // <<< CHANGE THIS TO YOUR IP
 
 const getBaseUrl = () => {
   // If running in Expo Go on a physical device, use your computer's IP

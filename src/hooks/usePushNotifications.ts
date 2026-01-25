@@ -36,28 +36,28 @@ async function registerForPushNotificationsAsync() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+      console.log('Push notification permission NOT granted. Status:', finalStatus, 'Existing Status:', existingStatus);
       return;
     }
-    
+
     // Learn more about projectId:
     // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
     try {
-        const projectId =
-            Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-            
-        if (!projectId) {
-            console.log('Project ID not found. Notifications will not work. Run `eas init` to configure.');
-            // Return early to avoid the error
-            return;
-        }
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
 
-        token = (await Notifications.getExpoPushTokenAsync({
-            projectId, 
-        })).data;
-        console.log('Expo Push Token:', token);
+      if (!projectId) {
+        console.log('Project ID not found. Notifications will not work. Run `eas init` to configure.');
+        // Return early to avoid the error
+        return;
+      }
+
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })).data;
+      console.log('Expo Push Token:', token);
     } catch (e: any) {
-        console.error('Error fetching push token:', e.message);
+      console.error('Error fetching push token:', e.message);
     }
   } else {
     // alert('Must use physical device for Push Notifications');
@@ -79,13 +79,13 @@ export const usePushNotifications = (user: any) => {
     if (!user) return;
 
     registerForPushNotificationsAsync().then(token => {
-        setExpoPushToken(token);
-        if (token) {
-            // Send token to backend
-            api.put('/users/me/push-token', { token })
-                .then(() => console.log('Push token updated on backend'))
-                .catch(err => console.error('Failed to update push token', err));
-        }
+      setExpoPushToken(token);
+      if (token) {
+        // Send token to backend
+        api.put('/users/me/push-token', { token })
+          .then(() => console.log('Push token updated on backend'))
+          .catch(err => console.error('Failed to update push token', err));
+      }
     });
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -95,21 +95,21 @@ export const usePushNotifications = (user: any) => {
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
       console.log('Notification Data:', data);
-      
+
       if (data?.groupId) {
-          // Navigate to GroupDetails
-          // Use a timeout or check ref state to ensure navigation is ready
-          setTimeout(() => {
-              // We navigate to 'Main' -> 'Groups' stack -> 'GroupDetails'
-              // Or if we use the top level navigator names:
-              if (data.type === 'GROUP_INVITATION') {
-                  navigate('Invitations', { screen: 'InvitationsList' });
-              } else if (data.type === 'NEW_ORDER' && data.orderId) {
-                  navigate('OrderSummary', { orderId: data.orderId, groupId: data.groupId });
-              } else {
-                  navigate('GroupDetails', { groupId: data.groupId });
-              }
-          }, 500);
+        // Navigate to GroupDetails
+        // Use a timeout or check ref state to ensure navigation is ready
+        setTimeout(() => {
+          // We navigate to 'Main' -> 'Groups' stack -> 'GroupDetails'
+          // Or if we use the top level navigator names:
+          if (data.type === 'GROUP_INVITATION') {
+            navigate('Invitations', { screen: 'InvitationsList' });
+          } else if (data.type === 'NEW_ORDER' && data.orderId) {
+            navigate('OrderSummary', { orderId: data.orderId, groupId: data.groupId });
+          } else {
+            navigate('GroupDetails', { groupId: data.groupId });
+          }
+        }, 500);
       }
     });
 
