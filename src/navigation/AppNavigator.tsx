@@ -20,6 +20,7 @@ import InviteMemberScreen from '../screens/InviteMemberScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import InvitationsScreen from '../screens/InvitationsScreen';
+import SettlementScreen from '../screens/SettlementScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -60,6 +61,7 @@ function GroupsStack() {
         })}
       />
       <Stack.Screen name="ReceiptReview" component={ReceiptReviewScreen} options={{ title: 'Split Bill' }} />
+      <Stack.Screen name="Settlement" component={SettlementScreen} options={{ title: 'Settlement Plan', headerLeft: () => null }} />
       <Stack.Screen name="InviteMember" component={InviteMemberScreen} options={{ title: 'Invite Friend' }} />
     </Stack.Navigator>
   );

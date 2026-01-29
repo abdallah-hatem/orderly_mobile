@@ -5,8 +5,23 @@ import * as ImagePicker from 'expo-image-picker';
 import api from '../api/client';
 import { Receipt, SplitResult } from '../types';
 
-export default function ReceiptReviewScreen({ route, navigation }: any) {
-  const { orderId } = route.params;
+import { navigate } from '../navigation/navigationRef';
+
+export default function ReceiptReviewScreen(props: any) {
+  // const navigation = useNavigation<any>();
+  // const route = useRoute<any>();
+  const { route } = props;
+  const navigation = props.navigation; // Fallback to props
+  
+  console.log('[ReceiptReviewScreen] Rendering with props.');
+  
+  // Safe access to params
+  const orderId = route?.params?.orderId;
+  if (!orderId) {
+    console.error('[ReceiptReviewScreen] Missing orderId in route params!', route);
+  } else {
+    // console.log('[ReceiptReviewScreen] Order ID:', orderId);
+  }
   const [loading, setLoading] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [split, setSplit] = useState<SplitResult[]>([]);
@@ -149,8 +164,8 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
       setReceipt(data.receipt);
       setSplit(data.split);
       setEditing(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update receipt');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update receipt');
     } finally {
       setLoading(false);
     }
@@ -181,13 +196,12 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
       setShowAddModal(false);
       setNewItem({ name: '', price: '' });
       setSourceUnassignedIndex(null);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add manual item');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to add manual item');
     } finally {
       setLoading(false);
     }
   };
-
   const handleRemoveManualItem = async (index: number) => {
     if (!receipt) return;
 
@@ -202,12 +216,18 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
 
       setReceipt(data.receipt);
       setSplit(data.split);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to remove item');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to remove item');
     } finally {
       setLoading(false);
     }
   };
+
+  const itemsTotalSum = split.reduce((acc, s) => acc + (s.items?.reduce((sum, item) => {
+    const p = itemPriceOverrides[item.id];
+    const price = p !== undefined ? parseFloat(p) : item.currentPrice;
+    return sum + (price || 0);
+  }, 0) || 0), 0);
 
   const liveTotal = editing ? (parseFloat(fees.total) || 0) : (receipt?.totalAmount || 0);
 
@@ -235,11 +255,12 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
 
       await api.post(`/orders/${orderId}/payments`, { payments: paymentList });
       const { data } = await api.get(`/orders/${orderId}/payments/settlement`);
-      setSettlement(data);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to calculate settlement');
-    } finally {
+      console.log('[Debug] Settlement Data Received:', data);
+      setLoading(false); // Stop loading before navigating
+      navigation.navigate('Settlement', { settlement: data });
+    } catch (error: any) {
       setLoading(false);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to calculate settlement');
     }
   };
 
@@ -251,8 +272,8 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
       setSplit(data.split);
       // Automatically enter editing mode so user can add tax/fees
       setEditing(true);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to initialize manual split');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to initialize manual split');
     } finally {
       setLoading(false);
     }
@@ -267,22 +288,17 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
 
     if (!editing) return userSplit.total;
 
-    // Calculate this user's portion of the current live fees
-    const currentSubtotal = parseFloat(fees.subtotal) || 0;
-    const totalFees = (parseFloat(fees.tax) || 0) +
-      (parseFloat(fees.serviceFee) || 0) +
-      (parseFloat(fees.deliveryFee) || 0);
-
-    let userSharedPortion = 0;
-    if (currentSubtotal > 0) {
-      // Proportional split (common strategy)
-      userSharedPortion = (userItemTotal / currentSubtotal) * totalFees;
+    const targetTotal = parseFloat(fees.total) || 0;
+    
+    if (itemsTotalSum > 0) {
+      // Proportional split of the ENTIRE total (items + fees) based on item proportions
+      return (userItemTotal / itemsTotalSum) * targetTotal;
     } else if (split.length > 0) {
-      // Equal split if subtotal is 0
-      userSharedPortion = totalFees / split.length;
+      // Equal split of the entire total if no items are present
+      return targetTotal / split.length;
     }
 
-    return userItemTotal + userSharedPortion;
+    return 0;
   };
 
   if (loading && !receipt) return (
@@ -418,7 +434,20 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                 </View>
 
                 <View className="flex-row justify-between pt-3 border-t border-gray-100 mt-2">
-                  <Text className="text-gray-400 font-medium">Calculated Subtotal</Text>
+                  <View>
+                    <Text className="text-gray-400 font-medium">Calculated Subtotal</Text>
+                    {editing && (
+                      <Text className={`text-[10px] font-bold ${
+                        Math.abs((parseFloat(fees.subtotal) || 0) - itemsTotalSum) < 0.01 
+                        ? 'text-green-500' 
+                        : 'text-orange-500'
+                      }`}>
+                        {Math.abs((parseFloat(fees.subtotal) || 0) - itemsTotalSum) < 0.01 
+                        ? 'Matches items sum' 
+                        : 'Mismatch with items sum'}
+                      </Text>
+                    )}
+                  </View>
                   <Text className="font-bold text-gray-500">
                     {editing ? fees.subtotal : receipt.subtotal.toFixed(2)} EGP
                   </Text>
@@ -581,39 +610,11 @@ export default function ReceiptReviewScreen({ route, navigation }: any) {
                 <Text className="text-white font-bold text-lg">Calculate Settlement</Text>
               </TouchableOpacity>
 
-              {settlement && (
-                <View className="bg-black rounded-2xl p-6 mb-6">
-                  <Text className="text-white text-xl font-bold mb-4 text-center">Settlement Plan</Text>
-                  {settlement.settlements.length === 0 ? (
-                    <Text className="text-white text-center">All settled! No one owes anything.</Text>
-                  ) : (
-                    settlement.settlements.map((s: any, idx: number) => (
-                      <View key={idx} className="flex-row items-center justify-between mb-4 border-b border-gray-800 pb-2">
-                        <View className="flex-row items-center">
-                          <Text className="text-red-400 font-bold text-lg">{s.from}</Text>
-                          <ArrowRight size={18} color="#6B7280" style={{ marginHorizontal: 8 }} />
-                          <Text className="text-green-400 font-bold text-lg">{s.to}</Text>
-                        </View>
-                        <Text className="text-white font-bold text-xl">{s.amount.toFixed(2)} EGP</Text>
-                      </View>
-                    ))
+                  {settlement && (
+                    <View className="mt-4 mb-6"><Text>Hidden</Text></View>
                   )}
-                </View>
-              )}
-
-              <TouchableOpacity
-                className={`p-4 rounded-xl items-center mt-2 mb-10 ${!settlement ? 'bg-gray-100' : 'bg-black shadow-lg'}`}
-                onPress={() => {
-                  if (!settlement) {
-                    Alert.alert('First things first', 'Please calculate the settlement plan before finishing.');
-                    return;
-                  }
-                  navigation.navigate('History');
-                }}
-              >
-                <Text className={`font-bold text-lg ${!settlement ? 'text-gray-400' : 'text-white'}`}>Finish & Go Home</Text>
-              </TouchableOpacity>
-            </>
+            
+                </>
           )}
         </ScrollView>
       </View>
