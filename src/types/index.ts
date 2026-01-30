@@ -58,7 +58,7 @@ export interface MenuItemAddon {
 
 export interface Order {
   id: string;
-  status: 'OPEN' | 'CLOSED' | 'PAID' | 'CANCELLED';
+  status: 'OPEN' | 'SPLITTING' | 'CLOSED' | 'PAID' | 'CANCELLED';
   initiatorId: string;
   restaurantId?: string;
   customRestaurantName?: string;

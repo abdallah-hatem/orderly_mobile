@@ -1,12 +1,31 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ArrowRight, Check } from 'lucide-react-native';
+import api from '../api/client';
 
 export default function SettlementScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { settlement } = route.params || {};
+  const { settlement, orderId } = route.params || {};
+  const [loading, setLoading] = useState(false);
+
+  const handleFinish = async () => {
+    if (!orderId) {
+      Alert.alert('Error', 'Order ID missing');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.put(`/orders/${orderId}/finalize`);
+      navigation.navigate('History');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to finalize order');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View className="flex-1 bg-white">
@@ -43,9 +62,14 @@ export default function SettlementScreen() {
 
         <TouchableOpacity
           className="bg-black p-4 rounded-xl items-center mt-6"
-          onPress={() => navigation.navigate('History')}
+          onPress={handleFinish}
+          disabled={loading}
         >
-          <Text className="text-white font-bold text-lg">Finish & Go Home</Text>
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text className="text-white font-bold text-lg">Finish & Go Home</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>

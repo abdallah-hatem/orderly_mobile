@@ -257,7 +257,7 @@ export default function ReceiptReviewScreen(props: any) {
       const { data } = await api.get(`/orders/${orderId}/payments/settlement`);
       console.log('[Debug] Settlement Data Received:', data);
       setLoading(false); // Stop loading before navigating
-      navigation.navigate('Settlement', { settlement: data });
+      navigation.navigate('Settlement', { settlement: data, orderId });
     } catch (error: any) {
       setLoading(false);
       Alert.alert('Error', error.response?.data?.message || 'Failed to calculate settlement');

@@ -4,7 +4,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import api from '../api/client';
-import { navigate } from '../navigation/navigationRef';
+import { navigate, forceNavigate } from '../navigation/navigationRef';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -90,13 +90,34 @@ export const usePushNotifications = (user: any) => {
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       setNotification(notification);
+      
+      // Auto-navigate when notification is received (not just tapped)
+      const data = notification.request.content.data;
+      console.log('[Notification Received] Type:', data?.type, 'OrderId:', data?.orderId);
+      
+      if (data?.type === 'ORDER_SPLIT' && data?.orderId) {
+        console.log('[Notification Received] Auto-navigating to order:', data.orderId);
+        setTimeout(() => {
+          forceNavigate('OrderSummary', { orderId: data.orderId });
+        }, 500);
+      }
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
       console.log('Notification Data:', data);
 
-      if (data?.groupId) {
+      if (data?.type === 'ORDER_SPLIT') {
+        // Navigate directly to the order that was split
+        console.log('[Notification Tapped] Navigating to order:', data.orderId);
+        setTimeout(() => {
+          if (data.orderId) {
+            forceNavigate('OrderSummary', { orderId: data.orderId });
+          } else {
+            navigate('History', { screen: 'HistoryList' });
+          }
+        }, 500);
+      } else if (data?.groupId) {
         // Navigate to GroupDetails
         // Use a timeout or check ref state to ensure navigation is ready
         setTimeout(() => {

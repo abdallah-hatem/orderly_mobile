@@ -29,18 +29,18 @@ export default function HistoryScreen({ navigation }: any) {
     }
   };
 
-  const activeOrders = orders.filter(o => o.status === 'OPEN');
-  const pastOrders = orders.filter(o => o.status !== 'OPEN');
+  const activeStatuses = ['OPEN', 'SPLITTING'];
+  const pastStatuses = ['CLOSED', 'CANCELLED', 'PAID'];
+  
+  const activeOrders = orders.filter((o: any) => activeStatuses.includes(o.status));
+  const pastOrders = orders.filter((o: any) => pastStatuses.includes(o.status));
   const displayOrders = activeTab === 'ACTIVE' ? activeOrders : pastOrders;
 
   const renderItem = ({ item }: { item: Order }) => (
     <TouchableOpacity
       style={{ backgroundColor: 'white', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}
       onPress={() => {
-        navigation.getParent()?.navigate('Groups', {
-          screen: 'OrderSummary',
-          params: { orderId: item.id }
-        });
+        navigation.navigate('OrderSummary', { orderId: item.id });
       }}
     >
       <View style={{ flex: 1 }}>

@@ -54,7 +54,7 @@ function GroupsStack() {
         options={({ navigation }: any) => ({
           title: 'My Order',
           headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.navigate('GroupsList')} className="ml-4">
+            <TouchableOpacity onPress={() => navigation.goBack()} className="ml-4">
               <Text className="text-black font-bold text-lg">Back</Text>
             </TouchableOpacity>
           ),
@@ -72,6 +72,18 @@ function HistoryStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: true }}>
       <Stack.Screen name="HistoryList" component={HistoryScreen} options={{ title: 'Order History' }} />
+      <Stack.Screen 
+        name="OrderSummary" 
+        component={OrderSummaryScreen} 
+        options={({ navigation }: any) => ({
+          title: 'Order Details',
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.goBack()} className="ml-4">
+              <Text className="text-black font-bold text-lg">Back</Text>
+            </TouchableOpacity>
+          ),
+        })}
+      />
     </Stack.Navigator>
   );
 }

@@ -44,13 +44,18 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
   };
 
   useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchOrder();
+    });
+
     fetchOrder();
-  }, [orderId]);
+    return unsubscribe;
+  }, [navigation, orderId, route.params]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchOrder();
-  }, []);
+  }, [orderId]);
 
   const { user: currentUser } = useAuth();
 
