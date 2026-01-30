@@ -7,16 +7,19 @@ import { Platform, Alert } from 'react-native';
 // To find it: 
 // - macOS: System Settings > Network > Your connection > IP address
 // - Windows: Run 'ipconfig' in CMD and look for IPv4 Address
-const LOCAL_IP = '192.168.1.6'; // <<< CHANGE THIS TO YOUR IP
 
+console.log(process.env.NODE_ENV);
 const getBaseUrl = () => {
-  // If running in Expo Go on a physical device, use your computer's IP
-  if (Constants.appOwnership === 'expo' || Platform.OS === 'android') {
-    return `http://${LOCAL_IP}:3000`;
+
+  if (process.env.NODE_ENV !== 'development') {
+    return process.env.EXPO_PUBLIC_BASE_URL;
   }
+
   // iOS Simulator can use localhost
   return 'http://localhost:3000';
 };
+
+console.log(getBaseUrl());
 
 const api = axios.create({
   baseURL: getBaseUrl(),
