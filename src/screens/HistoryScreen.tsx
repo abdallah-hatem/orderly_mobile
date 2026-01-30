@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, FlatList, Alert } from 'react-native';
 import api from '../api/client';
 import { Order } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export default function HistoryScreen({ navigation }: any) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
+  const { user } = useAuth();
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -36,25 +38,54 @@ export default function HistoryScreen({ navigation }: any) {
   const pastOrders = orders.filter((o: any) => pastStatuses.includes(o.status));
   const displayOrders = activeTab === 'ACTIVE' ? activeOrders : pastOrders;
 
-  const renderItem = ({ item }: { item: Order }) => (
-    <TouchableOpacity
-      style={{ backgroundColor: 'white', padding: 16, borderRadius: 8, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}
-      onPress={() => {
-        navigation.navigate('OrderSummary', { orderId: item.id });
-      }}
-    >
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
-            {item.restaurant?.name || item.customRestaurantName || 'Custom Restaurant'}
-        </Text>
-        <Text style={{ color: '#6b7280' }}>{item?.group?.name || 'No group'}</Text>
-        <Text style={{ fontSize: 12, color: '#9ca3af' }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-      </View>
-      <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: '#e5e7eb' }}>
-        <Text style={{ fontSize: 12, fontWeight: 'bold' }}>{item.status}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const handleCloseOrder = async (orderId: string) => {
+    try {
+      await api.put(`/orders/${orderId}/close`);
+      navigation.navigate('ReceiptReview', { orderId });
+    } catch (error) {
+      console.error('Failed to close order:', error);
+      Alert.alert('Error', 'Failed to close the order. Please try again.');
+    }
+  };
+
+  const renderItem = ({ item }: { item: Order }) => {
+    const isInitiator = user?.id === item.initiatorId;
+    const canClose = (item.status === 'OPEN' || item.status === 'SPLITTING') && isInitiator;
+
+    return (
+      <TouchableOpacity
+        style={{ backgroundColor: 'white', padding: 16, borderRadius: 8, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
+        onPress={() => {
+          navigation.navigate('OrderSummary', { orderId: item.id });
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
+                {item.restaurant?.name || item.customRestaurantName || 'Custom Restaurant'}
+            </Text>
+            <Text style={{ color: '#6b7280' }}>{item?.group?.name || 'No group'}</Text>
+            <Text style={{ fontSize: 12, color: '#9ca3af' }}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: item.status === 'OPEN' ? '#dcfce7' : (item.status === 'SPLITTING' ? '#fef9c3' : '#e5e7eb'), marginBottom: 8 }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: item.status === 'OPEN' ? '#166534' : (item.status === 'SPLITTING' ? '#854d0e' : '#6b7280') }}>{item.status}</Text>
+            </View>
+            {canClose && (
+              <TouchableOpacity 
+                onPress={() => handleCloseOrder(item.id)}
+                style={{ backgroundColor: '#000', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}
+              >
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
+                  {item.status === 'OPEN' ? 'Close & Split' : 'Continue Splitting'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={{ flex: 1, padding: 16, backgroundColor: '#f9fafb' }}>

@@ -84,6 +84,8 @@ function HistoryStack() {
           ),
         })}
       />
+      <Stack.Screen name="ReceiptReview" component={ReceiptReviewScreen} options={{ title: 'Split Bill' }} />
+      <Stack.Screen name="Settlement" component={SettlementScreen} options={{ title: 'Settlement Plan', headerLeft: () => null }} />
     </Stack.Navigator>
   );
 }
@@ -144,6 +146,14 @@ function MainTabs() {
       <Tab.Screen 
         name="Groups" 
         component={GroupsStack}
+        listeners={({ navigation }: any) => ({
+          tabPress: (e: any) => {
+            // Prevent default behavior to allow custom navigation
+            e.preventDefault();
+            // Always navigate to the root of the Groups stack
+            navigation.navigate('Groups', { screen: 'GroupsList' });
+          },
+        })}
         options={{
           tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
         }}
@@ -151,6 +161,12 @@ function MainTabs() {
       <Tab.Screen 
         name="History" 
         component={HistoryStack}
+        listeners={({ navigation }: any) => ({
+          tabPress: (e: any) => {
+            e.preventDefault();
+            navigation.navigate('History', { screen: 'HistoryList' });
+          },
+        })}
         options={{
           tabBarIcon: ({ color, size }) => <Clock size={size} color={color} />,
         }}
@@ -158,6 +174,12 @@ function MainTabs() {
       <Tab.Screen 
         name="Invitations" 
         component={InvitationsStack}
+        listeners={({ navigation }: any) => ({
+          tabPress: (e: any) => {
+            e.preventDefault();
+            navigation.navigate('Invitations', { screen: 'InvitationsList' });
+          },
+        })}
         options={{
           tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
         }}
@@ -165,6 +187,12 @@ function MainTabs() {
       <Tab.Screen 
         name="Profile" 
         component={ProfileStack}
+        listeners={({ navigation }: any) => ({
+          tabPress: (e: any) => {
+            e.preventDefault();
+            navigation.navigate('Profile', { screen: 'ProfileScreen' });
+          },
+        })}
         options={{
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}

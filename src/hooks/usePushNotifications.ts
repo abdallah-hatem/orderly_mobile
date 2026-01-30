@@ -95,8 +95,8 @@ export const usePushNotifications = (user: any) => {
       const data = notification.request.content.data;
       console.log('[Notification Received] Type:', data?.type, 'OrderId:', data?.orderId);
       
-      if (data?.type === 'ORDER_SPLIT' && data?.orderId) {
-        console.log('[Notification Received] Auto-navigating to order:', data.orderId);
+      if ((data?.type === 'ORDER_SPLIT' || data?.type === 'ORDER_FINALIZED') && data?.orderId) {
+        console.log(`[Notification Received] Auto-navigating to order (${data.type}):`, data.orderId);
         setTimeout(() => {
           forceNavigate('OrderSummary', { orderId: data.orderId });
         }, 500);
@@ -107,9 +107,9 @@ export const usePushNotifications = (user: any) => {
       const data = response.notification.request.content.data;
       console.log('Notification Data:', data);
 
-      if (data?.type === 'ORDER_SPLIT') {
-        // Navigate directly to the order that was split
-        console.log('[Notification Tapped] Navigating to order:', data.orderId);
+      if (data?.type === 'ORDER_SPLIT' || data?.type === 'ORDER_FINALIZED') {
+        // Navigate directly to the order
+        console.log(`[Notification Tapped] Navigating to order (${data.type}):`, data.orderId);
         setTimeout(() => {
           if (data.orderId) {
             forceNavigate('OrderSummary', { orderId: data.orderId });

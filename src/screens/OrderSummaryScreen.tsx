@@ -334,13 +334,15 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
         )}
       </ScrollView>
 
-      {order.status === 'OPEN' && isInitiator && (
+      {(order.status === 'OPEN' || order.status === 'SPLITTING') && isInitiator && (
            <View className="bg-transparent border-t border-gray-100 mb-[105px] min-w-[250px] w-[70%] mx-auto">
                <TouchableOpacity 
                     className="bg-black p-4 rounded-3xl items-center"
                     onPress={handleCloseOrder}
                >
-                   <Text className="text-white font-bold text-lg">Close Order & Split Bill</Text>
+                   <Text className="text-white font-bold text-lg">
+                     {order.status === 'OPEN' ? 'Close Order & Split Bill' : 'Continue Splitting'}
+                   </Text>
                </TouchableOpacity>
            </View>
       )}

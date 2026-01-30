@@ -288,17 +288,30 @@ export default function ReceiptReviewScreen(props: any) {
 
     if (!editing) return userSplit.total;
 
-    const targetTotal = parseFloat(fees.total) || 0;
-    
+    const tax = parseFloat(fees.tax) || 0;
+    const serviceFee = parseFloat(fees.serviceFee) || 0;
+    const deliveryFee = parseFloat(fees.deliveryFee) || 0;
+
+    const proportionalSharedCosts = tax + serviceFee;
+    const equalSplitDelivery = deliveryFee;
+
+    let proportionalPortion = 0;
+    let equalDeliveryPortion = 0;
+
     if (itemsTotalSum > 0) {
-      // Proportional split of the ENTIRE total (items + fees) based on item proportions
-      return (userItemTotal / itemsTotalSum) * targetTotal;
+      // Proportional split of tax and service fee based on order value
+      proportionalPortion = (userItemTotal / itemsTotalSum) * proportionalSharedCosts;
     } else if (split.length > 0) {
-      // Equal split of the entire total if no items are present
-      return targetTotal / split.length;
+      // Equal split if items sum is 0
+      proportionalPortion = proportionalSharedCosts / split.length;
     }
 
-    return 0;
+    // Equal split of delivery fee among all members
+    if (split.length > 0) {
+      equalDeliveryPortion = equalSplitDelivery / split.length;
+    }
+
+    return userItemTotal + proportionalPortion + equalDeliveryPortion;
   };
 
   if (loading && !receipt) return (
