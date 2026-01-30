@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "SplitBite",
+    "slug": "splitbite",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -28,7 +28,6 @@
     },
     "extra": {
       "eas": {
-        "projectId": "ef8754fc-a0a6-47bc-9834-9cc61ba10a72"
       }
     },
     "owner": "leo_pepsi_2"
