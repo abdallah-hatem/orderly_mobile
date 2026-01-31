@@ -28,7 +28,7 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
                   api.get(`/receipts/order/${orderId}`),
                   api.get(`/orders/${orderId}/payments/settlement`)
               ]);
-              setReceipt(receiptRes.data);
+              setReceipt(receiptRes.data.receipt);
               setSettlement(settlementRes.data);
           } catch (err) {
               console.warn('Failed to fetch settlement data', err);
@@ -165,6 +165,50 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
 
   const isInitiator = currentUser?.id === order.initiatorId;
 
+  // Primary source of truth for display is the settlement split if it exists
+  const displayGroups = settlement?.split || Object.keys(order.items.reduce((acc: any, item: OrderItem) => {
+      const userId = item.userId;
+      if (!acc[userId]) {
+          acc[userId] = { 
+              userId,
+              userName: item.user.name, 
+              items: [],
+              total: 0,
+              sharedCostPortion: 0
+          };
+      }
+      acc[userId].items.push({
+          id: item.id,
+          name: item.menuItem?.name || item.customItemName || 'Unnamed Item',
+          quantity: item.quantity,
+          currentPrice: item.priceAtOrder,
+          addons: item.addons
+      });
+      acc[userId].total += item.priceAtOrder * item.quantity;
+      return acc;
+  }, {})).map(uid => {
+      const grouped = order.items.reduce((acc: any, item: OrderItem) => {
+          if (item.userId === uid) {
+              if (!acc.name) acc.name = item.user.name;
+              acc.items.push(item);
+          }
+          return acc;
+      }, { items: [] });
+      return {
+          userId: uid,
+          userName: grouped.name,
+          items: grouped.items.map((i: any) => ({
+              id: i.id,
+              name: i.menuItem?.name || i.customItemName || 'Unnamed Item',
+              quantity: i.quantity,
+              currentPrice: i.priceAtOrder,
+              addons: i.addons
+          })),
+          total: grouped.items.reduce((sum: number, i: any) => sum + i.priceAtOrder * i.quantity, 0),
+          sharedCostPortion: settlement?.overall?.find((s: any) => s.userId === uid)?.sharedCostPortion || 0
+      };
+  });
+
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView 
@@ -190,38 +234,39 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
                     </View>
                 </View>
             </View>
-        </View>
+            </View>
 
         <Text className="text-lg font-bold mb-3 uppercase text-gray-400 tracking-wider px-1">Order Summary</Text>
 
-        {Object.keys(groupedItems).map((userId) => (
-            <View key={userId} className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
+        {displayGroups.map((group: any) => (
+            <View key={group.userId} className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
                 <View className="flex-row items-center justify-between mb-3">
                     <View className="flex-row items-center">
                         <User size={18} color="black" className="mr-2" />
-                        <Text className="font-bold text-lg">{groupedItems[userId].name}</Text>
+                        <Text className="font-bold text-lg">{group.userName}</Text>
                     </View>
-                    <Text className="font-bold text-lg text-black">{(groupedItems[userId].total || 0).toFixed(2)} EGP</Text>
+                    <Text className="font-bold text-lg text-black">{(group.total || 0).toFixed(2)} EGP</Text>
                 </View>
 
-                {groupedItems[userId].items.map((item: OrderItem) => {
-                    const ownerName = groupedItems[userId].name;
+                {group.items.map((item: any) => {
+                    const ownerName = group.userName;
+                    const isManual = item.isManual;
                     return (
                         <View key={item.id} className="flex-row justify-between mb-4">
                             <View className="flex-1">
                                 <Text className="font-medium text-gray-900">
-                                    {item.quantity > 1 ? `${item.quantity}x ` : ''}{item.menuItem?.name || item.customItemName || 'Unnamed Item'} {item.variant ? `(${item.variant.name})` : ''}
+                                    {item.quantity > 1 ? `${item.quantity}x ` : ''}{item.name} {item.variant ? `(${item.variant.name})` : ''}
+                                    {isManual && <Text className="text-[10px] text-blue-500 font-bold"> (NEW)</Text>}
                                 </Text>
-                                {item.addons.map((a: any, idx: number) => (
-                                    <Text key={idx} className="text-gray-500 text-xs">+ {a.addon.name}</Text>
+                                {item.addons?.map((a: any, idx: number) => (
+                                    <Text key={idx} className="text-gray-500 text-xs">+ {a.addon?.name || a.name}</Text>
                                 ))}
                             </View>
                             <View className="flex-row items-center">
-                                <Text className="font-bold mr-4 text-gray-900">{((item.priceAtOrder || 0) * item.quantity).toFixed(2)} EGP</Text>
-                                {order.status === 'OPEN' && (
+                                <Text className="font-bold mr-4 text-gray-900">{((item.currentPrice || 0) * item.quantity).toFixed(2)} EGP</Text>
+                                {order.status === 'OPEN' && !isManual && (
                                     <View className="flex-row">
-                                        {/* Only owner can edit their own item */}
-                                        {userId === currentUser?.id && (
+                                        {group.userId === currentUser?.id && (
                                             <TouchableOpacity 
                                               className="p-1.5 bg-gray-50 rounded-lg mr-2"
                                               onPress={() => handleEditItem(item, ownerName)}
@@ -230,8 +275,7 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
                                             </TouchableOpacity>
                                         )}
                                         
-                                        {/* Owner OR Initiator can delete */}
-                                        {(userId === currentUser?.id || isInitiator) && (
+                                        {(group.userId === currentUser?.id || isInitiator) && (
                                             <TouchableOpacity 
                                               className="p-1.5 bg-red-50 rounded-lg"
                                               onPress={() => handleDeleteItem(item, ownerName)}
@@ -246,10 +290,10 @@ export default function OrderSummaryScreen({ route, navigation }: any) {
                     );
                 })}
 
-                {groupedItems[userId].sharedCostPortion > 0 && (
+                {group.sharedCostPortion > 0 && (
                     <View className="mt-2 pt-2 border-t border-gray-50 flex-row justify-between">
                         <Text className="text-gray-400 text-xs italic">+ Shared tax & fees</Text>
-                        <Text className="text-gray-400 text-xs italic">{(groupedItems[userId].sharedCostPortion || 0).toFixed(2)} EGP</Text>
+                        <Text className="text-gray-400 text-xs italic">{(group.sharedCostPortion || 0).toFixed(2)} EGP</Text>
                     </View>
                 )}
             </View>

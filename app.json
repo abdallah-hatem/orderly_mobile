@@ -13,9 +13,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.leopepsi.splitbite",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.leopepsi.splitbite",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -28,6 +33,7 @@
     },
     "extra": {
       "eas": {
+        "projectId": "6424f268-3512-48d1-9a2c-a9392b928a2a"
       }
     },
     "owner": "leo_pepsi_2"

@@ -8,18 +8,16 @@ import { Platform, Alert } from 'react-native';
 // - macOS: System Settings > Network > Your connection > IP address
 // - Windows: Run 'ipconfig' in CMD and look for IPv4 Address
 
-console.log(process.env.NODE_ENV);
 const getBaseUrl = () => {
-
-  if (process.env.NODE_ENV !== 'development') {
     return process.env.EXPO_PUBLIC_BASE_URL;
-  }
 
-  // iOS Simulator can use localhost
-  return 'http://localhost:3000';
+  // if (process.env.NODE_ENV !== 'development') {
+  //   return process.env.EXPO_PUBLIC_BASE_URL;
+  // }
+
+  // // iOS Simulator can use localhost
+  // return 'http://localhost:3000';
 };
-
-console.log(getBaseUrl());
 
 const api = axios.create({
   baseURL: getBaseUrl(),

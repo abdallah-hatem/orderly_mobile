@@ -39,6 +39,25 @@ export default function ReceiptReviewScreen(props: any) {
   const [newItem, setNewItem] = useState({ name: '', price: '' });
   const [sourceUnassignedIndex, setSourceUnassignedIndex] = useState<number | null>(null);
 
+  const fetchReceipt = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get(`/receipts/order/${orderId}`);
+      if (data) {
+        setReceipt(data.receipt);
+        setSplit(data.split);
+      }
+    } catch (error) {
+      console.warn('No existing receipt found for this order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReceipt();
+  }, [orderId]);
+
   // When receipt or split changes, initialize state
   useEffect(() => {
     if (receipt) {
